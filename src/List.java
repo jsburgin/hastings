@@ -14,13 +14,11 @@ public class List {
         return this.head == null;
     }
 
-    public void append(ListObject value) {
+    public void append(ListNode node) {
 
-        if (value == null) {
+        if (node == null) {
             return;
         }
-
-        ListNode node = new ListNode(value);
 
         if (head == null) {
             head = node;
@@ -34,8 +32,7 @@ public class List {
         this.tail = node;
     }
 
-    public void prepend(ListObject value) {
-        ListNode node = new ListNode(value);
+    public void prepend(ListNode node) {
 
         if (head == null) {
             head = node;
@@ -54,8 +51,8 @@ public class List {
     }
     public ListNode peekBack() { return this.tail; }
 
-    public ListObject removeFront() {
-        ListObject value = this.head.getValue();
+    public ListNode removeFront() {
+        ListNode value = this.head;
         this.head = this.head.getNext();
 
         if (this.head == null) {
@@ -65,8 +62,8 @@ public class List {
         return value;
     }
 
-    public ListObject removeBack() {
-        ListObject value = this.tail.getValue();
+    public ListNode removeBack() {
+        ListNode value = this.tail;
 
         this.tail = this.tail.getPrev();
 

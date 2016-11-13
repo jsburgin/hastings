@@ -2,12 +2,10 @@
  * Created by josh on 9/28/16.
  */
 public class ListNode {
-    private ListNode next;
-    private ListNode prev;
-    private ListObject value;
+    protected ListNode next;
+    protected ListNode prev;
 
-    public ListNode(ListObject value) {
-        this.value = value;
+    public ListNode() {
         this.next = null;
         this.prev = null;
     }
@@ -23,12 +21,4 @@ public class ListNode {
     public ListNode getPrev() { return this.prev; }
 
     public void setPrev(ListNode prev) { this.prev = prev; }
-
-    public ListObject getValue() {
-        return this.value;
-    }
-
-    public void setValue(ListObject value) {
-        this.value = value;
-    }
 }
