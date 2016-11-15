@@ -10,9 +10,6 @@ public class Main {
 
         Lexer mainLexer = new Lexer("/Users/josh/Desktop/test.has");
         List lexemes = mainLexer.getLexemes();
-
-        while(!lexemes.isEmpty()) {
-            System.out.println(lexemes.removeFront());
-        }
+        Parser mainParser = new Parser(lexemes);
     }
 }

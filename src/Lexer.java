@@ -7,18 +7,22 @@ public class Lexer {
     private String baseFile;
     private List lexemes;
     private Scanner scanner;
+    private int line;
 
     public Lexer(String fileName) {
         this.baseFile = fileName;
+        this.line = 1;
 
         try {
             this.scanner = new Scanner(new File(this.baseFile));
             this.lexemes = new List();
-
             this.beginAnalysis();
+
+            this.lexemes.append(new Lexeme("EOF"));
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("File " + this.baseFile + " not found.\nExiting.");
+            //e.printStackTrace();
+            System.out.println("File " + this.baseFile + " not found.");
+            System.out.println("Exiting.");
             System.exit(1);
         }
     }
@@ -42,14 +46,12 @@ public class Lexer {
             return;
         }
 
-
         if (singleLexeme.getType() == "ASSIGN") {
             if (this.lexemes.peekBack() != null) {
                 Lexeme previous = (Lexeme) this.lexemes.peekBack();
                 if (checkRepeats(previous)) return;
             }
         }
-
 
         if (singleLexeme.getType() != "COMMENT") {
             this.lexemes.append(singleLexeme);
@@ -59,52 +61,55 @@ public class Lexer {
     private Lexeme checkSingle(String value) {
         switch(value) {
             case "(":
-                return new Lexeme("OPAREN", value);
+                return new Lexeme("OPAREN", value, line);
             case ")":
-                return new Lexeme("CPAREN", value);
+                return new Lexeme("CPAREN", value, line);
             case "{":
-                return new Lexeme("OBRACE", value);
+                return new Lexeme("OBRACE", value, line);
             case "}":
-                return new Lexeme("CBRACE", value);
+                return new Lexeme("CBRACE", value, line);
             case ";":
-                return new Lexeme("SEMIC", value);
+                return new Lexeme("SEMIC", value, line);
             case ",":
-                return new Lexeme("COMMA", value);
+                return new Lexeme("COMMA", value, line);
             case "+":
-                return new Lexeme("PLUS", value);
+                return new Lexeme("PLUS", value, line);
             case "-":
-                return new Lexeme("MINUS", value);
+                return new Lexeme("MINUS", value, line);
             case "*":
-                return new Lexeme("MULT", value);
+                return new Lexeme("MULT", value, line);
             case "/":
-                return new Lexeme("DIV", value);
+                return new Lexeme("DIV", value, line);
             case "=":
-                return new Lexeme("ASSIGN", value);
+                return new Lexeme("ASSIGN", value, line);
             case "<":
-                return new Lexeme("LESST", value);
+                return new Lexeme("LESST", value, line);
             case ">":
-                return new Lexeme("GRTT", value);
+                return new Lexeme("GRTT", value, line);
             case "^":
-                return new Lexeme("EXP", value);
+                return new Lexeme("EXP", value, line);
             case "%":
-                return new Lexeme("MOD", value);
+                return new Lexeme("MOD", value, line);
             case "[":
-                return new Lexeme("OBRACK", value);
+                return new Lexeme("OBRACK", value, line);
             case "]":
-                return new Lexeme("CBRACK", value);
+                return new Lexeme("CBRACK", value, line);
             case "#":
                 while (scanner.hasNext()) {
                     String scanned = scanner.next();
                     if (scanned.equals("\n")) break;
                 }
-                return new Lexeme("COMMENT", value);
+                return new Lexeme("COMMENT", value, line);
             case "\"":
+                value = "";
                 while (scanner.hasNext()) {
                     String scanned = scanner.next();
-                    value += scanned;
                     if (scanned.equals("\"")) break;
+                    value += scanned;
                 }
-                return new Lexeme("STRING", value);
+                return new Lexeme("STRING", value, line);
+            case "\n":
+                this.line++;
         }
 
         return null;
@@ -114,15 +119,15 @@ public class Lexer {
         switch (previous.getType()) {
             case "ASSIGN":
                 this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("CEQUAL", "=="));
+                this.lexemes.append(new Lexeme("CEQUAL", "==", line));
                 return true;
             case "GRTT":
                 this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("GRTEQ", ">="));
+                this.lexemes.append(new Lexeme("GRTEQ", ">=", line));
                 return true;
             case "LESST":
                 this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("LESSEQ", "<="));
+                this.lexemes.append(new Lexeme("LESSEQ", "<=", line));
                 return true;
         }
 
@@ -160,44 +165,45 @@ public class Lexer {
     private Lexeme checkWord(String value) {
         switch (value) {
             case "var":
-                return new Lexeme("VAR", value);
+                return new Lexeme("VAR", value, line);
             case "func":
-                return new Lexeme("FUNCTION", value);
+                return new Lexeme("FUNC", value, line);
             case "if":
-                return new Lexeme("ICOND", value);
+                return new Lexeme("ICOND", value, line);
+            case "else":
+                return new Lexeme("ELSE", value, line);
             case "!=":
-                return new Lexeme("CDEQUAL", value);
+                return new Lexeme("CDEQUAL", value, line);
             case "while":
-                return new Lexeme("WHILE", value);
+                return new Lexeme("WHILE", value, line);
             case "for":
-                return new Lexeme("FOR", value);
+                return new Lexeme("FOR", value, line);
             case "return":
-                return new Lexeme("RETURN", value);
+                return new Lexeme("RETURN", value, line);
             case "this":
-                return new Lexeme("ENV", value);
+                return new Lexeme("ENV", value, line);
             case "true":
-                return new Lexeme("BOOLT", value);
+                return new Lexeme("BOOLT", value, line);
             case "false":
-                return new Lexeme("BOOLF", value);
+                return new Lexeme("BOOLF", value, line);
+            case "nil":
+                return new Lexeme("NIL", value, line);
         }
 
         return dynamicValue(value);
     }
 
     private Lexeme dynamicValue(String value) {
-        // check for a valid integer value
         String pattern = "([0-9])+";
         Pattern checkAgainst = Pattern.compile(pattern);
-
         Matcher m = checkAgainst.matcher(value);
 
         if (m.find()) {
             if (m.group(0).length() == value.length()) {
-                return new Lexeme("INT", value);
+                return new Lexeme("INT", value, line);
             }
         }
 
-        // not an integer
-        return new Lexeme("IDENT", value);
+        return new Lexeme("IDENT", value, line);
     }
 }

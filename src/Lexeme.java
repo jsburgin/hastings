@@ -1,10 +1,16 @@
 public class Lexeme extends ListNode {
     private String type;
     private String value;
+    private int line;
 
-    public Lexeme(String type, String value) {
+    public Lexeme(String type) {
+        this.type = type;
+    }
+
+    public Lexeme(String type, String value, int line) {
         this.type = type;
         this.value = value;
+        this.line = line;
         this.next = null;
         this.prev = null;
     }
@@ -21,6 +27,10 @@ public class Lexeme extends ListNode {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public int getLine() {
+        return this.line;
     }
 
     public String toString() {
