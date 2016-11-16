@@ -13,7 +13,7 @@ public class Main {
             Evaluator mainEvaluator = new Evaluator(mainParser.getStatements());
 
         } catch(StackOverflowError e) {
-            System.out.println("Error running file.");
+            System.out.println("\nStack overflow.");
             System.exit(1);
         }
 

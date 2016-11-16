@@ -56,6 +56,8 @@ public class Env {
                 variables = cdr(variables);
                 vals = cdr(vals);
             }
+
+            env = Env.cdr(env);
         }
 
         return null;

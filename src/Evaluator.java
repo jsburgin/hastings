@@ -3,7 +3,7 @@
  */
 public class Evaluator {
     Lexeme globalEnv;
-    private boolean returned = false;
+    private Lexeme returnValue = null;
 
     public Evaluator(Lexeme tree) {
         globalEnv = new Env().createEnv();
@@ -23,9 +23,72 @@ public class Evaluator {
             case "STRING":
                 return tree;
             case "FUNCCALL":
-                return evalFuncCall(tree, env);
+                Lexeme call = evalFuncCall(tree, env);
+                returnValue = null;
+                return call;
             case "IDENT":
                 return Env.lookupEnv(env, tree);
+            case "PLUS":
+                return evalOp("+", tree, env);
+            case "MINUS":
+                return evalOp("-", tree, env);
+            case "MULT":
+                return evalOp("*", tree, env);
+            case "DIV":
+                return evalOp("/", tree, env);
+            case "FUNCDEF":
+                return evalFuncDef(tree, env);
+            case "RETURNST":
+                returnValue = eval((Lexeme) tree.getPrev(), env);
+                return null;
+        }
+
+        return null;
+    }
+
+
+    private Lexeme evalOp(String op, Lexeme tree, Lexeme env) {
+        Lexeme left = eval((Lexeme) tree.getPrev(), env);
+        Lexeme right = eval((Lexeme) tree.getNext(), env);
+
+        if (!left.getType().equals(right.getType())) {
+            System.out.print("Incompatible types for operation " + op + ": ");
+            System.out.println(left.getType() + " and " + right.getType() + ".");
+            System.exit(1);
+        }
+
+        if (left.getType().equals("STRING")) {
+            String first = left.getValue();
+            String second = right.getValue();
+            Lexeme done = new Lexeme("STRING");
+
+            switch (op) {
+                case "+":
+                    done.setValue(String.valueOf(first + second));
+                    return done;
+                default:
+                    System.out.println("Invalid operation: " + op + " for types STRING.");
+                    System.exit(1);
+            }
+        }
+
+        Lexeme done = new Lexeme("INT");
+        int first = Integer.valueOf(left.getValue());
+        int second = Integer.valueOf(right.getValue());
+
+        switch (op) {
+            case "+":
+                done.setValue(String.valueOf(first + second));
+                return done;
+            case "-":
+                done.setValue(String.valueOf(first - second));
+                return done;
+            case "*":
+                done.setValue(String.valueOf(first * second));
+                return done;
+            case "/":
+                done.setValue(String.valueOf(first / second));
+                return done;
         }
 
         return null;
@@ -38,27 +101,27 @@ public class Evaluator {
     }
 
     private Lexeme evalStatements(Lexeme tree, Lexeme env) {
-        Lexeme possibleReturn = eval((Lexeme) tree.getPrev(), env);
+        eval((Lexeme) tree.getPrev(), env);
 
-        if (!returned) {
+        if (returnValue == null) {
             eval((Lexeme) tree.getNext(), env);
         }
 
-        return possibleReturn;
+        return returnValue;
     }
 
     private Lexeme evalStatement(Lexeme tree, Lexeme env) {
         return eval((Lexeme) tree.getPrev(), env);
     }
 
-    private void evalFuncDef(Lexeme ident, Lexeme tree, Lexeme env) {
+    private Lexeme evalFuncDef(Lexeme tree, Lexeme env) {
         Lexeme closure = Env.cons("CLOSURE", env,
-                Env.cons("JOIN", getFuncDefParams((Lexeme) tree.getPrev().getNext()),
+                Env.cons("JOIN", getFuncDefParams(tree),
                         Env.cons("JOIN", getFuncDefBody(tree), null)
                         )
                 );
 
-        Env.insert(ident, closure, env);
+        return closure;
     }
 
     private Lexeme evalFuncCall(Lexeme tree, Lexeme env) {
@@ -68,9 +131,9 @@ public class Evaluator {
         Lexeme eargs = evalArgs(args, env);
 
         if (funcName.getValue().equals("print")) {
-            while (args != null) {
-                System.out.print(Env.car(args).getValue() + " ");
-                args = Env.cdr(args);
+            while (eargs != null) {
+                System.out.print(Env.car(eargs).getValue() + " ");
+                eargs = Env.cdr(eargs);
             }
 
             System.out.print("\n");
@@ -78,7 +141,7 @@ public class Evaluator {
             return null;
         }
 
-        Lexeme closure = eval(getFuncCallName(tree), env);
+        Lexeme closure = Env.lookupEnv(env, (Lexeme) tree.getNext());
         Lexeme params = getClosureParams(closure);
         Lexeme body = getClosureBody(closure);
         Lexeme senv = getClosureEnv(closure);
@@ -88,19 +151,11 @@ public class Evaluator {
     }
 
     private Lexeme evalArgs(Lexeme args, Lexeme env) {
-
-        Lexeme current = args;
-
-        while (current != null) {
-            Env.setCar(current, eval(Env.car(current), env));
-            current = Env.cdr(current);
+        if (args != null) {
+            return Env.cons("GLUE", eval(Env.car(args), env), evalArgs(Env.cdr(args), env));
         }
 
-        return args;
-    }
-
-    private Lexeme getFuncCallName(Lexeme tree) {
-        return (Lexeme) tree.getPrev();
+        return null;
     }
 
     private Lexeme getFuncCallArgs(Lexeme tree) {
@@ -120,11 +175,7 @@ public class Evaluator {
     }
 
     private Lexeme getFuncDefParams(Lexeme tree) {
-        if (tree == null) {
-            return null;
-        }
-
-        return Env.cons("GLUE", tree, getFuncDefParams((Lexeme) tree.getNext()));
+        return (Lexeme) tree.getPrev().getPrev();
     }
 
     private Lexeme getFuncDefBody(Lexeme tree) {
