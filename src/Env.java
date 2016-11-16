@@ -1,10 +1,10 @@
 public class Env {
 
-    public Lexeme createEnv() {
+    public static Lexeme createEnv() {
         return extendEnv(null, null, null);
     }
 
-    private Lexeme cons (String type, Lexeme carValue, Lexeme cdrValue) {
+    public static Lexeme cons (String type, Lexeme carValue, Lexeme cdrValue) {
         Lexeme newLexeme = new Lexeme(type);
         newLexeme.setPrev(carValue);
         newLexeme.setNext(cdrValue);
@@ -12,31 +12,37 @@ public class Env {
         return newLexeme;
     }
 
-    private Lexeme car(Lexeme cell) {
+    public static Lexeme car(Lexeme cell) {
         return (Lexeme) cell.getPrev();
     }
 
-    private Lexeme cdr (Lexeme cell) {
+    public static Lexeme cdr (Lexeme cell) {
         return (Lexeme) cell.getNext();
     }
 
-    private void setCar(Lexeme cell, Lexeme value) {
+    public static void setCar(Lexeme cell, Lexeme value) {
         cell.setPrev(value);
     }
 
-    private void setCdr(Lexeme cell, Lexeme value) {
+    public static void setCdr(Lexeme cell, Lexeme value) {
         cell.setNext(value);
     }
 
-    public Lexeme extendEnv(Lexeme env, Lexeme variables, Lexeme values) {
-        return cons("ENV", makeTable(variables, values), env);
+    public static void insert(Lexeme ident, Lexeme value, Lexeme env) {
+        Lexeme table = Env.car(env);
+        Env.setCar(table ,cons("JOIN", ident, car(table)));
+        Env.setCdr(table, cons("JOIN", value, cdr(table)));
     }
 
-    public Lexeme makeTable(Lexeme variables, Lexeme values) {
+    public static Lexeme extendEnv(Lexeme env, Lexeme variables, Lexeme values) {
+        return Env.cons("ENV", makeTable(variables, values), env);
+    }
+
+    public static Lexeme makeTable(Lexeme variables, Lexeme values) {
         return cons("TABLE", variables, values);
     }
 
-    public Lexeme lookupEnv(Lexeme env, Lexeme variable) {
+    public static Lexeme lookupEnv(Lexeme env, Lexeme variable) {
         while (env != null) {
             Lexeme table = car(env);
             Lexeme variables = car(table);
@@ -44,7 +50,7 @@ public class Env {
 
             while (variables != null) {
                 if (sameVariable(car(variables), variable)) {
-                    return  car(variables);
+                    return  car(vals);
                 }
 
                 variables = cdr(variables);
@@ -55,7 +61,7 @@ public class Env {
         return null;
     }
 
-    public boolean sameVariable(Lexeme a, Lexeme b) {
+    public static boolean sameVariable(Lexeme a, Lexeme b) {
         return a.getValue().equals(b.getValue());
     }
 }

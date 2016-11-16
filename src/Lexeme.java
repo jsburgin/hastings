@@ -19,6 +19,7 @@ public class Lexeme extends ListNode {
         return this.type;
     }
 
+
     public String getValue() { return this.value; }
 
     public void setType(String type) {

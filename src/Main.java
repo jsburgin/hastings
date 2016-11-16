@@ -7,9 +7,17 @@
 public class Main {
 
     public static void main(String[] args) {
+        try {
+            Lexer mainLexer = new Lexer("/Users/josh/Desktop/test.has");
+            Parser mainParser = new Parser(mainLexer.getLexemes());
+            Evaluator mainEvaluator = new Evaluator(mainParser.getStatements());
 
-        Lexer mainLexer = new Lexer("/Users/josh/Desktop/test.has");
-        List lexemes = mainLexer.getLexemes();
-        Parser mainParser = new Parser(lexemes);
+        } catch(StackOverflowError e) {
+            System.out.println("Error running file.");
+            System.exit(1);
+        }
+
+
+
     }
 }

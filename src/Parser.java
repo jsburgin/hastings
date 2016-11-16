@@ -1,16 +1,18 @@
 public class Parser {
 
     private Lexeme current;
+    private Lexeme root;
 
     public Parser(List input) {
         if (!input.isEmpty()) {
             current = (Lexeme) input.removeFront();
-            Lexeme tree = statements("EOF");
-
-            int a = 10;
+            root = statements("EOF");
         }
     }
 
+    public Lexeme getStatements() {
+        return root;
+    }
 
     private Lexeme advance() {
         Lexeme old = current;
@@ -81,6 +83,10 @@ public class Parser {
         } else if (check("WHILE")) {
             advance();
             tree.setPrev(whileLoop());
+            tree.setNext(null);
+        } else if (check("IDENT")) {
+            tree.setPrev(funcCall(match("IDENT")));
+            match("SEMIC");
             tree.setNext(null);
         }
         return tree;
@@ -173,16 +179,15 @@ public class Parser {
     }
 
 
-    private Lexeme identStart() {
+    private boolean funcCallPending() {
         current = (Lexeme) current.getNext();
-
         if (check("OPAREN")) {
             current = (Lexeme) current.getPrev();
-            return funcCall(match("IDENT"));
+            return true;
         }
 
         current = (Lexeme) current.getPrev();
-        return match("IDENT");
+        return false;
     }
 
     private Lexeme funcCall(Lexeme identifier) {
@@ -224,18 +229,23 @@ public class Parser {
 
     private Lexeme argList() {
         Lexeme tree = new Lexeme("ARGS");
-        Lexeme last = tree;
+        tree.setPrev(null);
         match("OPAREN");
 
-        while(check("IDENT") || check("STRING") || check("INT") || check("COMMA")) {
-            if (check("COMMA")) advance();
-            last.setNext(match("ANYTHING"));
-            last = (Lexeme) last.getNext();
+        if (check("IDENT") || check("STRING") || check("INT")) {
+            tree.setPrev(Env.cons("GLUE", expression(), getAddArgs()));
         }
 
         match("CPAREN");
 
         return tree;
+    }
+
+    private Lexeme getAddArgs() {
+        if (check("CPAREN")) return null;
+        if (check("COMMA")) advance();
+
+        return Env.cons("GLUE", expression(), getAddArgs());
     }
 
     private Lexeme expression() {
@@ -252,15 +262,21 @@ public class Parser {
     }
 
     /**
-     * primary : IDENT | INT | FUNCCALL
+     * primary : IDENT | INT | FUNCCALL | STRING
      */
     private Lexeme primary() {
         Lexeme tree = null;
 
         if (check("IDENT")) {
-            tree = identStart();
+            if (funcCallPending()) {
+                return funcCall(match("IDENT"));
+            }
+
+            return match("IDENT");
         } else if (check("INT")) {
             tree = match("INT");
+        } else if (check("STRING")) {
+            tree = match("STRING");
         }
 
         return tree;
