@@ -61,7 +61,6 @@ public class Parser {
         return tree;
     }
 
-
     /**
      * statement:
      */
@@ -70,7 +69,7 @@ public class Parser {
 
         if (check("VAR")) {
             advance();
-            tree.setPrev(varDec());
+            tree.setPrev(varDec(ident()));
             tree.setNext(null);
         } else if (check("RETURN")) {
             advance();
@@ -81,43 +80,49 @@ public class Parser {
             tree.setPrev(ifState());
             tree.setNext(elseChain());
         } else if (check("IDENT")) {
+            Lexeme ident = ident();
+
             if (assignPending()) {
-                tree.setPrev(setVar());
-            } else if (dotPending()) {
-                tree.setPrev(setDot());
+                tree.setPrev(setVar(ident));
             } else {
-                tree.setPrev(funcCall(match("IDENT")));
+                tree.setPrev(funcCall(ident));
             }
             match("SEMIC");
             tree.setNext(null);
+        } else if (check("FUNC")) {
+            tree.setPrev(funcAssign());
         }
         return tree;
     }
 
-    private Lexeme setDot() {
-        Lexeme tree = new Lexeme("SETDOT");
-        tree.setPrev(dotCall(match("IDENT")));
-        match("ASSIGN");
-        tree.setNext(expression());
+    private Lexeme funcAssign() {
+        Lexeme tree = new Lexeme("VARIABLE");
+        match("FUNC");
+        tree.setPrev(ident());
+        tree.setNext(funcDef());
 
         return tree;
     }
 
+    private Lexeme ident() {
+        Lexeme tree = new Lexeme("IDENTH");
+        tree.setPrev(match("IDENT"));
+
+        if (dotPending()) {
+            match("DOT");
+            tree.setNext(ident());
+        }
+
+        return tree;
+    }
 
     private boolean assignPending() {
-        current = (Lexeme) current.getNext();
-        if (check("ASSIGN")) {
-            current = (Lexeme) current.getPrev();
-            return true;
-        }
-
-        current = (Lexeme) current.getPrev();
-        return false;
+        return check("ASSIGN");
     }
 
-    private Lexeme setVar() {
+    private Lexeme setVar(Lexeme ident) {
         Lexeme tree = new Lexeme("SET");
-        tree.setPrev(match("IDENT"));
+        tree.setPrev(ident);
         match("ASSIGN");
         tree.setNext(expression());
 
@@ -192,10 +197,10 @@ public class Parser {
         return tree;
     }
 
-    private Lexeme varDec() {
+    private Lexeme varDec(Lexeme ident) {
         Lexeme tree = new Lexeme("VARIABLE");
 
-        tree.setPrev(match("IDENT"));
+        tree.setPrev(ident);
         match("ASSIGN");
         if (funcDefPending()) {
             advance();
@@ -213,25 +218,12 @@ public class Parser {
     }
 
     private boolean funcCallPending() {
-        current = (Lexeme) current.getNext();
-        if (check("OPAREN")) {
-            current = (Lexeme) current.getPrev();
-            return true;
-        }
 
-        current = (Lexeme) current.getPrev();
-        return false;
+        return check("OPAREN");
     }
 
     private boolean dotPending() {
-        current = (Lexeme) current.getNext();
-        if (check("DOT")) {
-            current = (Lexeme) current.getPrev();
-            return true;
-        }
-
-        current = (Lexeme) current.getPrev();
-        return false;
+        return check("DOT");
     }
 
     private Lexeme funcCall(Lexeme identifier) {
@@ -310,15 +302,6 @@ public class Parser {
         return tree;
     }
 
-    private Lexeme dotCall(Lexeme ident) {
-        Lexeme tree = new Lexeme("DOTOP");
-        tree.setPrev(ident);
-        match("DOT");
-        tree.setNext(match("IDENT"));
-
-        return tree;
-    }
-
     /**
      * primary : IDENT | INT | FUNCCALL | STRING
      */
@@ -326,15 +309,12 @@ public class Parser {
         Lexeme tree = null;
 
         if (check("IDENT")) {
+            Lexeme ident = ident();
             if (funcCallPending()) {
-                return funcCall(match("IDENT"));
+                return funcCall(ident);
             }
 
-            if (dotPending()) {
-                return dotCall(match("IDENT"));
-            }
-
-            return match("IDENT");
+            return ident;
         } else if (check("INT")) {
             tree = match("INT");
         } else if (check("STRING")) {

@@ -29,6 +29,12 @@ public class Env {
     }
 
     public static void insert(Lexeme ident, Lexeme value, Lexeme env) {
+        while (ident.getNext() != null) {
+            ident = (Lexeme) ident.getNext();
+        }
+
+        ident = (Lexeme) ident.getPrev();
+
         Lexeme table = Env.car(env);
         Env.setCar(table ,cons("JOIN", ident, car(table)));
         Env.setCdr(table, cons("JOIN", value, cdr(table)));
@@ -49,9 +55,13 @@ public class Env {
             Lexeme vals = cdr(table);
 
             while (variables != null) {
-                if (sameVariable(car(variables),variable)) {
-                    setCar(vals, value);
-                    return null;
+                if (sameVariable(variable, car(variables))) {
+                    if ((Lexeme) variable.getNext() == null) {
+                        setCar(vals, value);
+                        return null;
+                    }
+
+                    return updateValue(car(vals), (Lexeme) variable.getNext(), value);
                 }
 
                 variables = cdr(variables);
@@ -71,7 +81,12 @@ public class Env {
             Lexeme vals = cdr(table);
 
             while (variables != null) {
-                if (sameVariable(car(variables), variable)) {
+                if (sameVariable(variable, car(variables))) {
+
+                    if ((Lexeme) variable.getNext() != null) {
+                        return lookupEnv(car(vals), (Lexeme) variable.getNext());
+                    }
+
                     return  car(vals);
                 }
 
@@ -82,6 +97,7 @@ public class Env {
             env = Env.cdr(env);
         }
 
+        variable = (Lexeme) variable.getPrev();
         System.out.print("UNDEFINED ERROR. ");
         System.out.println("Line " + variable.getLine() + ": " + variable.getValue() + " is not defined.");
         System.exit(1);
@@ -89,6 +105,7 @@ public class Env {
     }
 
     public static boolean sameVariable(Lexeme a, Lexeme b) {
+        a = (Lexeme) a.getPrev();
         return a.getValue().equals(b.getValue());
     }
 }

@@ -26,7 +26,7 @@ public class Evaluator {
                 Lexeme call = evalFuncCall(tree, env);
                     returnValue = null;
                 return call;
-            case "IDENT":
+            case "IDENTH":
                 return Env.lookupEnv(env, tree);
             case "PLUS":
                 return evalOp("+", tree, env);
@@ -49,10 +49,6 @@ public class Evaluator {
                 return env;
             case "NIL":
                 return tree;
-            case "DOTOP":
-                return evalDotOp(tree, env);
-            case "SETDOT":
-                return evalSetDot(tree, env);
         }
 
         return null;
@@ -202,7 +198,7 @@ public class Evaluator {
 
     private Lexeme evalFuncCall(Lexeme tree, Lexeme env) {
 
-        Lexeme funcName = (Lexeme) tree.getNext();
+        Lexeme funcName = (Lexeme) tree.getNext().getPrev();
         Lexeme args = getFuncCallArgs(tree);
         Lexeme eargs = evalArgs(args, env);
 
