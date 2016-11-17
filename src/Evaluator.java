@@ -41,9 +41,51 @@ public class Evaluator {
             case "RETURNST":
                 returnValue = eval((Lexeme) tree.getPrev(), env);
                 return null;
+            case "IFSTATE":
+                return evalIf(tree, env);
         }
 
         return null;
+    }
+
+    private Lexeme evalIf(Lexeme tree, Lexeme env) {
+        Lexeme status = evalCond((Lexeme) tree.getPrev(), env);
+
+        if (status.getType().equals("BOOLT")) {
+            return eval((Lexeme) tree.getNext(), env);
+        }
+
+        return null;
+    }
+
+    private Lexeme evalCond(Lexeme tree, Lexeme env) {
+        Lexeme cond = (Lexeme) tree.getPrev();
+        Lexeme left = eval((Lexeme) cond.getPrev(), env);
+        Lexeme right = eval((Lexeme) cond.getNext(), env);
+
+        if (cond.getType().equals("CEQUAL")) {
+            if (left.getValue().equals(right.getValue()))
+                return new Lexeme("BOOLT");
+            return new Lexeme("BOOLF");
+        }
+
+        if (!left.getType().equals("INT") || !right.getType().equals("INT")) {
+            System.out.println("Cannot compare strings with conditionals other than: ==.");
+            System.exit(1);
+        }
+
+        int first = Integer.valueOf(left.getValue());
+        int second = Integer.valueOf(right.getValue());
+
+        switch (cond.getValue()) {
+            case "LESST":
+                if (first < second) return new Lexeme("BOOLT");
+                break;
+            case "GRRT":
+                if (first > second) return new Lexeme("BOOLT");
+        }
+
+        return new Lexeme("BOOLF");
     }
 
 

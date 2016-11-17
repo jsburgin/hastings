@@ -127,20 +127,39 @@ public class Parser {
 
     private Lexeme ifState() {
         Lexeme tree = new Lexeme("IFSTATE");
-        tree.setPrev(conditional());
+        tree.setPrev(condBody());
         match("OBRACE");
         tree.setNext(statements("CBRACE"));
 
         return tree;
     }
 
-    private Lexeme conditional() {
+    private Lexeme condBody() {
         Lexeme tree = new Lexeme("COND");
+
         match("OPAREN");
-        while (!check("CPAREN")) advance();
+        tree.setPrev(conditional());
+        tree.setNext(null);
         match("CPAREN");
 
         return tree;
+    }
+
+    private Lexeme conditional() {
+        Lexeme tree = expression();
+
+        if (condPending()) {
+            Lexeme temp = match("ANYTHING");
+            temp.setPrev(tree);
+            temp.setNext(expression());
+            tree = temp;
+        }
+
+        return tree;
+    }
+
+    private boolean condPending() {
+        return check("LESST") || check("GRTT") || check("CEQUAL");
     }
 
     private Lexeme returnState() {
@@ -274,6 +293,13 @@ public class Parser {
             tree = match("INT");
         } else if (check("STRING")) {
             tree = match("STRING");
+        } else if (check("FUNC")) {
+            advance();
+            return funcDef();
+        } else if (check("BOOLT")) {
+            return match("BOOLT");
+        } else if (check("BOOLF")) {
+            return match("BOOLF");
         }
 
         return tree;
