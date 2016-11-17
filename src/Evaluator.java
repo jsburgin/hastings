@@ -24,7 +24,7 @@ public class Evaluator {
                 return tree;
             case "FUNCCALL":
                 Lexeme call = evalFuncCall(tree, env);
-                returnValue = null;
+                    returnValue = null;
                 return call;
             case "IDENT":
                 return Env.lookupEnv(env, tree);
@@ -43,9 +43,32 @@ public class Evaluator {
                 return null;
             case "IFSTATE":
                 return evalIf(tree, env);
+            case "SET":
+                return evalSetVar(tree, env);
+            case "THIS":
+                return env;
+            case "NIL":
+                return tree;
+            case "DOTOP":
+                return evalDotOp(tree, env);
         }
 
         return null;
+    }
+
+    private Lexeme evalDotOp(Lexeme tree, Lexeme env) {
+        Lexeme ident = (Lexeme) tree.getPrev();
+        Lexeme prop = (Lexeme) tree.getNext();
+
+        Lexeme oenv = Env.lookupEnv(env, ident);
+        Lexeme value = Env.lookupEnv(oenv, prop);
+
+        return value;
+    }
+
+    private Lexeme evalSetVar(Lexeme tree, Lexeme env) {
+        Env.updateValue(env, (Lexeme) tree.getPrev(), eval((Lexeme) tree.getNext(), env));
+        return new Lexeme("NONE");
     }
 
     private Lexeme evalIf(Lexeme tree, Lexeme env) {
@@ -77,11 +100,11 @@ public class Evaluator {
         int first = Integer.valueOf(left.getValue());
         int second = Integer.valueOf(right.getValue());
 
-        switch (cond.getValue()) {
+        switch (cond.getType()) {
             case "LESST":
                 if (first < second) return new Lexeme("BOOLT");
                 break;
-            case "GRRT":
+            case "GRTT":
                 if (first > second) return new Lexeme("BOOLT");
         }
 
@@ -173,13 +196,7 @@ public class Evaluator {
         Lexeme eargs = evalArgs(args, env);
 
         if (funcName.getValue().equals("print")) {
-            while (eargs != null) {
-                System.out.print(Env.car(eargs).getValue() + " ");
-                eargs = Env.cdr(eargs);
-            }
-
-            System.out.print("\n");
-
+            print(eargs);
             return null;
         }
 
@@ -190,6 +207,15 @@ public class Evaluator {
         Lexeme xenv = Env.extendEnv(senv, params, eargs);
 
         return eval(body, xenv);
+    }
+
+    private void print(Lexeme eargs) {
+        while (eargs != null) {
+            System.out.print(Env.car(eargs).getValue() + " ");
+            eargs = Env.cdr(eargs);
+        }
+
+        System.out.print("\n");
     }
 
     private Lexeme evalArgs(Lexeme args, Lexeme env) {

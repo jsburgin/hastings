@@ -94,6 +94,8 @@ public class Lexer {
                 return new Lexeme("OBRACK", value, line);
             case "]":
                 return new Lexeme("CBRACK", value, line);
+            case ".":
+                return new Lexeme("DOT", value, line);
             case "#":
                 while (scanner.hasNext()) {
                     String scanned = scanner.next();
@@ -174,20 +176,20 @@ public class Lexer {
                 return new Lexeme("ELSE", value, line);
             case "!=":
                 return new Lexeme("CDEQUAL", value, line);
-            case "while":
-                return new Lexeme("WHILE", value, line);
             case "for":
                 return new Lexeme("FOR", value, line);
             case "return":
                 return new Lexeme("RETURN", value, line);
             case "this":
-                return new Lexeme("ENV", value, line);
+                return new Lexeme("THIS", value, line);
             case "true":
                 return new Lexeme("BOOLT", value, line);
             case "false":
                 return new Lexeme("BOOLF", value, line);
             case "nil":
                 return new Lexeme("NIL", value, line);
+            case "set":
+                return new Lexeme("SET", value, line);
         }
 
         return dynamicValue(value);

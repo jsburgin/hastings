@@ -16,8 +16,5 @@ public class Main {
             System.out.println("\nStack overflow.");
             System.exit(1);
         }
-
-
-
     }
 }

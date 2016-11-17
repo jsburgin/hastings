@@ -72,6 +72,10 @@ public class Parser {
             advance();
             tree.setPrev(varDec());
             tree.setNext(null);
+        } else if (check("SET")) {
+            advance();
+            tree.setPrev(setVar());
+            tree.setNext(null);
         } else if (check("RETURN")) {
             advance();
             tree.setPrev(returnState());
@@ -80,10 +84,6 @@ public class Parser {
             advance();
             tree.setPrev(ifState());
             tree.setNext(elseChain());
-        } else if (check("WHILE")) {
-            advance();
-            tree.setPrev(whileLoop());
-            tree.setNext(null);
         } else if (check("IDENT")) {
             tree.setPrev(funcCall(match("IDENT")));
             match("SEMIC");
@@ -92,6 +92,16 @@ public class Parser {
         return tree;
     }
 
+
+    private Lexeme setVar() {
+        Lexeme tree = new Lexeme("SET");
+        tree.setPrev(match("IDENT"));
+        match("ASSIGN");
+        tree.setNext(expression());
+        match("SEMIC");
+
+        return tree;
+    }
 
     private Lexeme elseChain() {
         if (!check("ELSE")) {
@@ -109,15 +119,6 @@ public class Parser {
         Lexeme tree = new Lexeme("ELSESTATE");
         match("ELSE");
         match("ICOND");
-        tree.setPrev(conditional());
-        match("OBRACE");
-        tree.setNext(statements("CBRACE"));
-
-        return tree;
-    }
-
-    private Lexeme whileLoop() {
-        Lexeme tree = new Lexeme("WHILELOOP");
         tree.setPrev(conditional());
         match("OBRACE");
         tree.setNext(statements("CBRACE"));
@@ -201,6 +202,17 @@ public class Parser {
         return false;
     }
 
+    private boolean dotPending() {
+        current = (Lexeme) current.getNext();
+        if (check("DOT")) {
+            current = (Lexeme) current.getPrev();
+            return true;
+        }
+
+        current = (Lexeme) current.getPrev();
+        return false;
+    }
+
     private Lexeme funcCall(Lexeme identifier) {
         Lexeme tree = new Lexeme("FUNCCALL");
 
@@ -248,7 +260,7 @@ public class Parser {
         tree.setPrev(null);
         match("OPAREN");
 
-        if (check("IDENT") || check("STRING") || check("INT")) {
+        if (check("IDENT") || check("STRING") || check("INT") || check("NIL")) {
             tree.setPrev(Env.cons("GLUE", expression(), getAddArgs()));
         }
 
@@ -258,7 +270,7 @@ public class Parser {
     }
 
     private Lexeme getAddArgs() {
-        if (check("CPAREN")) return null;
+        if (!check("IDENT") && !check("STRING") && !check("INT") && !check("COMMA") && !check("NIL")) return null;
         if (check("COMMA")) advance();
 
         return Env.cons("GLUE", expression(), getAddArgs());
@@ -277,6 +289,15 @@ public class Parser {
         return tree;
     }
 
+    private Lexeme dotCall(Lexeme ident) {
+        Lexeme tree = new Lexeme("DOTOP");
+        tree.setPrev(ident);
+        match("DOT");
+        tree.setNext(match("IDENT"));
+
+        return tree;
+    }
+
     /**
      * primary : IDENT | INT | FUNCCALL | STRING
      */
@@ -286,6 +307,10 @@ public class Parser {
         if (check("IDENT")) {
             if (funcCallPending()) {
                 return funcCall(match("IDENT"));
+            }
+
+            if (dotPending()) {
+                return dotCall(match("IDENT"));
             }
 
             return match("IDENT");
@@ -300,6 +325,10 @@ public class Parser {
             return match("BOOLT");
         } else if (check("BOOLF")) {
             return match("BOOLF");
+        } else if (check("NIL")) {
+            return match("NIL");
+        } else if (check("THIS")) {
+            return match("THIS");
         }
 
         return tree;

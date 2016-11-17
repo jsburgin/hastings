@@ -42,6 +42,28 @@ public class Env {
         return cons("TABLE", variables, values);
     }
 
+    public static Lexeme updateValue(Lexeme env, Lexeme variable, Lexeme value) {
+        while (env != null) {
+            Lexeme table = car(env);
+            Lexeme variables = car(table);
+            Lexeme vals = cdr(table);
+
+            while (variables != null) {
+                if (sameVariable(car(variables),variable)) {
+                    setCar(vals, value);
+                    return null;
+                }
+
+                variables = cdr(variables);
+                vals = cdr(vals);
+            }
+
+            env = (cdr(env));
+        }
+
+        return null;
+    }
+
     public static Lexeme lookupEnv(Lexeme env, Lexeme variable) {
         while (env != null) {
             Lexeme table = car(env);
