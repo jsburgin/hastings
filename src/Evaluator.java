@@ -51,9 +51,20 @@ public class Evaluator {
                 return tree;
             case "DOTOP":
                 return evalDotOp(tree, env);
+            case "SETDOT":
+                return evalSetDot(tree, env);
         }
 
         return null;
+    }
+
+    private Lexeme evalSetDot(Lexeme tree, Lexeme env) {
+        Lexeme ident = (Lexeme) tree.getPrev().getPrev();
+        Lexeme prop = (Lexeme) tree.getPrev().getNext();
+
+        Lexeme oenv = Env.lookupEnv(env, ident);
+        Env.updateValue(oenv, prop, eval((Lexeme) tree.getNext(), env));
+        return new Lexeme("NONE");
     }
 
     private Lexeme evalDotOp(Lexeme tree, Lexeme env) {

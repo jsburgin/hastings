@@ -83,12 +83,23 @@ public class Parser {
         } else if (check("IDENT")) {
             if (assignPending()) {
                 tree.setPrev(setVar());
+            } else if (dotPending()) {
+                tree.setPrev(setDot());
             } else {
                 tree.setPrev(funcCall(match("IDENT")));
             }
             match("SEMIC");
             tree.setNext(null);
         }
+        return tree;
+    }
+
+    private Lexeme setDot() {
+        Lexeme tree = new Lexeme("SETDOT");
+        tree.setPrev(dotCall(match("IDENT")));
+        match("ASSIGN");
+        tree.setNext(expression());
+
         return tree;
     }
 
