@@ -72,10 +72,6 @@ public class Parser {
             advance();
             tree.setPrev(varDec());
             tree.setNext(null);
-        } else if (check("SET")) {
-            advance();
-            tree.setPrev(setVar());
-            tree.setNext(null);
         } else if (check("RETURN")) {
             advance();
             tree.setPrev(returnState());
@@ -85,7 +81,11 @@ public class Parser {
             tree.setPrev(ifState());
             tree.setNext(elseChain());
         } else if (check("IDENT")) {
-            tree.setPrev(funcCall(match("IDENT")));
+            if (assignPending()) {
+                tree.setPrev(setVar());
+            } else {
+                tree.setPrev(funcCall(match("IDENT")));
+            }
             match("SEMIC");
             tree.setNext(null);
         }
@@ -93,12 +93,22 @@ public class Parser {
     }
 
 
+    private boolean assignPending() {
+        current = (Lexeme) current.getNext();
+        if (check("ASSIGN")) {
+            current = (Lexeme) current.getPrev();
+            return true;
+        }
+
+        current = (Lexeme) current.getPrev();
+        return false;
+    }
+
     private Lexeme setVar() {
         Lexeme tree = new Lexeme("SET");
         tree.setPrev(match("IDENT"));
         match("ASSIGN");
         tree.setNext(expression());
-        match("SEMIC");
 
         return tree;
     }

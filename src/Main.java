@@ -8,7 +8,7 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            Lexer mainLexer = new Lexer("/Users/josh/Desktop/test2.has");
+            Lexer mainLexer = new Lexer("/Users/josh/Desktop/test.has");
             Parser mainParser = new Parser(mainLexer.getLexemes());
             Evaluator mainEvaluator = new Evaluator(mainParser.getStatements());
 

@@ -82,6 +82,9 @@ public class Env {
             env = Env.cdr(env);
         }
 
+        System.out.print("UNDEFINED ERROR. ");
+        System.out.println("Line " + variable.getLine() + ": " + variable.getValue() + " is not defined.");
+        System.exit(1);
         return null;
     }
 
