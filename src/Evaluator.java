@@ -5,8 +5,8 @@ public class Evaluator {
     Lexeme globalEnv;
     private Lexeme returnValue = null;
 
-    public Evaluator(Lexeme tree) {
-        globalEnv = new Env().createEnv();
+    public Evaluator(Lexeme tree, Lexeme env) {
+        globalEnv = env;
         eval(tree, globalEnv);
     }
 
@@ -18,6 +18,10 @@ public class Evaluator {
                 return evalStatement(tree, env);
             case "VARIABLE":
                 return evalVarDef(tree, env);
+            case "BOOLT":
+                return tree;
+            case "BOOLF":
+                return tree;
             case "INT":
                 return tree;
             case "STRING":
@@ -39,7 +43,7 @@ public class Evaluator {
             case "FUNCDEF":
                 return evalFuncDef(tree, env);
             case "RETURNST":
-                returnValue = eval((Lexeme) tree.getPrev(), env);
+                returnValue = eval(tree.getPrev(), env);
                 return null;
             case "IFSTATE":
                 return evalIf(tree, env);
@@ -49,55 +53,115 @@ public class Evaluator {
                 return env;
             case "NIL":
                 return tree;
+            case "LESST":
+                return evalCond(tree, env);
+            case "GRTT":
+                return evalCond(tree, env);
+            case "CEQUAL":
+                return evalEq(tree, env);
+            case "NOTEQ":
+                return evalNotEq(tree, env);
+            case "AND":
+                return evalAnd(tree, env);
+            case "OR":
+                return evalOr(tree, env);
+            case "ARRAYDEF":
+                return arrayDef(tree, env);
         }
 
         return null;
     }
 
-    private Lexeme evalSetDot(Lexeme tree, Lexeme env) {
-        Lexeme ident = (Lexeme) tree.getPrev().getPrev();
-        Lexeme prop = (Lexeme) tree.getPrev().getNext();
+    private Lexeme arrayDef(Lexeme tree, Lexeme env) {
+        Lexeme eargs = evalArgs(tree.getPrev().getPrev(), env);
+        Lexeme Array = new Lexeme("ARRAY");
+        Array.initArray();
 
-        Lexeme oenv = Env.lookupEnv(env, ident);
-        Env.updateValue(oenv, prop, eval((Lexeme) tree.getNext(), env));
-        return new Lexeme("NONE");
+        while (eargs != null) {
+            Array.getArray().add(Env.car(eargs));
+            eargs = Env.cdr(eargs);
+        }
+
+        return Array;
     }
 
-    private Lexeme evalDotOp(Lexeme tree, Lexeme env) {
-        Lexeme ident = (Lexeme) tree.getPrev();
-        Lexeme prop = (Lexeme) tree.getNext();
+    private Lexeme evalAnd(Lexeme tree, Lexeme env) {
+        Lexeme left = eval(tree.getPrev(), env);
 
-        Lexeme oenv = Env.lookupEnv(env, ident);
-        Lexeme value = Env.lookupEnv(oenv, prop);
+        if (left.getType().equals("BOOLT")) {
+            return eval(tree.getNext(), env);
+        }
 
-        return value;
+        return left;
+    }
+
+    private Lexeme evalOr(Lexeme tree, Lexeme env) {
+        Lexeme left = eval(tree.getPrev(), env);
+
+        if (left.getType().equals("BOOLT")) {
+            return left;
+        }
+
+        return eval(tree.getNext(), env);
     }
 
     private Lexeme evalSetVar(Lexeme tree, Lexeme env) {
-        Env.updateValue(env, (Lexeme) tree.getPrev(), eval((Lexeme) tree.getNext(), env));
+        Env.updateValue(env, tree.getPrev(), eval(tree.getNext(), env));
         return new Lexeme("NONE");
     }
 
     private Lexeme evalIf(Lexeme tree, Lexeme env) {
-        Lexeme status = evalCond((Lexeme) tree.getPrev(), env);
+        Lexeme status = eval(tree.getPrev(), env);
 
         if (status.getType().equals("BOOLT")) {
-            return eval((Lexeme) tree.getNext(), env);
+            return eval(tree.getNext(), env);
         }
 
         return null;
     }
 
-    private Lexeme evalCond(Lexeme tree, Lexeme env) {
-        Lexeme cond = (Lexeme) tree.getPrev();
-        Lexeme left = eval((Lexeme) cond.getPrev(), env);
-        Lexeme right = eval((Lexeme) cond.getNext(), env);
+    private Lexeme evalEq(Lexeme tree, Lexeme env) {
 
-        if (cond.getType().equals("CEQUAL")) {
-            if (left.getValue().equals(right.getValue()))
+        Lexeme left = eval(tree.getPrev(), env);
+        Lexeme right = eval(tree.getNext(), env);
+
+        if (left.getType().equals("NIL") || right.getType().equals("NIL")) {
+            if (right.getType().equals(left.getType())) {
                 return new Lexeme("BOOLT");
+            }
+
             return new Lexeme("BOOLF");
         }
+
+        if (left.getValue().equals(right.getValue()))
+            return new Lexeme("BOOLT");
+
+        return new Lexeme("BOOLF");
+    }
+
+    private Lexeme evalNotEq(Lexeme tree, Lexeme env) {
+
+        Lexeme left = eval(tree.getPrev(), env);
+        Lexeme right = eval(tree.getNext(), env);
+
+        if (left.getType().equals("NIL") || right.getType().equals("NIL")) {
+            if (right.getType().equals(left.getType())) {
+                return new Lexeme("BOOLF");
+            }
+
+            return new Lexeme("BOOLT");
+        }
+
+        if (left.getValue().equals(right.getValue()))
+            return new Lexeme("BOOLF");
+
+        return new Lexeme("BOOLT");
+    }
+
+    private Lexeme evalCond(Lexeme tree, Lexeme env) {
+
+        Lexeme left = eval(tree.getPrev(), env);
+        Lexeme right = eval(tree.getNext(), env);
 
         if (!left.getType().equals("INT") || !right.getType().equals("INT")) {
             System.out.println("Cannot compare strings with conditionals other than: ==.");
@@ -107,7 +171,7 @@ public class Evaluator {
         int first = Integer.valueOf(left.getValue());
         int second = Integer.valueOf(right.getValue());
 
-        switch (cond.getType()) {
+        switch (tree.getType()) {
             case "LESST":
                 if (first < second) return new Lexeme("BOOLT");
                 break;
@@ -120,8 +184,8 @@ public class Evaluator {
 
 
     private Lexeme evalOp(String op, Lexeme tree, Lexeme env) {
-        Lexeme left = eval((Lexeme) tree.getPrev(), env);
-        Lexeme right = eval((Lexeme) tree.getNext(), env);
+        Lexeme left = eval(tree.getPrev(), env);
+        Lexeme right = eval(tree.getNext(), env);
 
         if (!left.getType().equals(right.getType())) {
             System.out.print("Incompatible types for operation " + op + ": ");
@@ -167,23 +231,23 @@ public class Evaluator {
     }
 
     private Lexeme evalVarDef(Lexeme tree, Lexeme env) {
-        Env.insert((Lexeme) tree.getPrev(), eval((Lexeme) tree.getNext(), env), env);
+        Env.insert(tree.getPrev(), eval(tree.getNext(), env), env);
 
         return new Lexeme("NONE");
     }
 
     private Lexeme evalStatements(Lexeme tree, Lexeme env) {
-        eval((Lexeme) tree.getPrev(), env);
+        eval(tree.getPrev(), env);
 
         if (returnValue == null) {
-            eval((Lexeme) tree.getNext(), env);
+            eval(tree.getNext(), env);
         }
 
         return returnValue;
     }
 
     private Lexeme evalStatement(Lexeme tree, Lexeme env) {
-        return eval((Lexeme) tree.getPrev(), env);
+        return eval(tree.getPrev(), env);
     }
 
     private Lexeme evalFuncDef(Lexeme tree, Lexeme env) {
@@ -198,7 +262,7 @@ public class Evaluator {
 
     private Lexeme evalFuncCall(Lexeme tree, Lexeme env) {
 
-        Lexeme funcName = (Lexeme) tree.getNext().getPrev();
+        Lexeme funcName = tree.getNext().getPrev();
         Lexeme args = getFuncCallArgs(tree);
         Lexeme eargs = evalArgs(args, env);
 
@@ -207,7 +271,13 @@ public class Evaluator {
             return null;
         }
 
-        Lexeme closure = Env.lookupEnv(env, (Lexeme) tree.getNext());
+        if (funcName.getValue().equals("include")) {
+            String filename = Env.car(eargs).getValue();
+            Include.execute(filename, globalEnv);
+            return null;
+        }
+
+        Lexeme closure = Env.lookupEnv(env, tree.getNext());
         Lexeme params = getClosureParams(closure);
         Lexeme body = getClosureBody(closure);
         Lexeme senv = getClosureEnv(closure);
@@ -234,7 +304,7 @@ public class Evaluator {
     }
 
     private Lexeme getFuncCallArgs(Lexeme tree) {
-        return (Lexeme) tree.getPrev().getPrev();
+        return  tree.getPrev().getPrev();
     }
 
     private Lexeme getClosureParams(Lexeme closure) {
@@ -250,10 +320,10 @@ public class Evaluator {
     }
 
     private Lexeme getFuncDefParams(Lexeme tree) {
-        return (Lexeme) tree.getPrev().getPrev();
+        return  tree.getPrev().getPrev();
     }
 
     private Lexeme getFuncDefBody(Lexeme tree) {
-        return (Lexeme) tree.getNext();
+        return  tree.getNext();
     }
 }

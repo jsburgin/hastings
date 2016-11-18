@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class Env {
 
     public static Lexeme createEnv() {
@@ -61,6 +63,14 @@ public class Env {
                         return null;
                     }
 
+                    Lexeme next = (Lexeme) variable.getNext();
+                    if (next.getType().equals("INDEX")) {
+                        Lexeme index = (Lexeme) next.getPrev();
+                        ArrayList<Lexeme> array = car(vals).getArray();
+                        array.set(Integer.valueOf(index.getValue()), value);
+                        return null;
+                    }
+
                     return updateValue(car(vals), (Lexeme) variable.getNext(), value);
                 }
 
@@ -83,11 +93,24 @@ public class Env {
             while (variables != null) {
                 if (sameVariable(variable, car(variables))) {
 
-                    if ((Lexeme) variable.getNext() != null) {
-                        return lookupEnv(car(vals), (Lexeme) variable.getNext());
+                    if ((Lexeme) variable.getNext() == null) {
+                        return  car(vals);
                     }
 
-                    return  car(vals);
+                    try {
+                        Lexeme next = (Lexeme) variable.getNext();
+                        if (next.getType().equals("INDEX")) {
+                            Lexeme index = (Lexeme) next.getPrev();
+                            ArrayList<Lexeme> array = car(vals).getArray();
+                            return array.get(Integer.valueOf(index.getValue()));
+                        }
+                    } catch (IndexOutOfBoundsException e) {
+                        System.out.println("ARRAY OUT OF BOUNDS ERROR.");
+                        System.exit(1);
+                    }
+
+                    return lookupEnv(car(vals), (Lexeme) variable.getNext());
+
                 }
 
                 variables = cdr(variables);

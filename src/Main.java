@@ -7,13 +7,16 @@
 public class Main {
 
     public static void main(String[] args) {
-        try {
-            Lexer mainLexer = new Lexer("/Users/josh/Desktop/dpltests/nicestack.has");
-            Parser mainParser = new Parser(mainLexer.getLexemes());
-            Evaluator mainEvaluator = new Evaluator(mainParser.getStatements());
+        if (args.length < 1) {
+            System.out.println("Please provide .has source file.");
+            System.exit(1);
+        }
 
+        try {
+            Lexeme env = Env.createEnv();
+            Include.execute(args[0], env);
         } catch(StackOverflowError e) {
-            System.out.println("\nStack overflow.");
+            System.out.println("\nSTACK OVERFLOW.");
             System.exit(1);
         }
     }

@@ -1,34 +1,49 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Lexer {
-    private String baseFile;
-    private List lexemes;
     private Scanner scanner;
     private int line;
+    private Lexeme head;
+    private Lexeme tail;
 
     public Lexer(String fileName) {
-        this.baseFile = fileName;
         this.line = 1;
-
         try {
-            this.scanner = new Scanner(new File(this.baseFile));
-            this.lexemes = new List();
+            this.scanner = new Scanner(new File(fileName));
             this.beginAnalysis();
-
-            this.lexemes.append(new Lexeme("EOF"));
-        } catch (Exception e) {
-            //e.printStackTrace();
-            System.out.println("File " + this.baseFile + " not found.");
+            add(new Lexeme("EOF"));
+        } catch (FileNotFoundException e) {
+            System.out.println("File " + fileName + " not found.");
             System.out.println("Exiting.");
             System.exit(1);
         }
     }
 
-    public List getLexemes() {
-        return this.lexemes;
+    public Lexeme getLexemes() {
+        return head;
+    }
+
+    private void add(Lexeme toAdd) {
+        if (toAdd == null) return;
+
+        if (head == null) {
+            head = toAdd;
+            tail = toAdd;
+            return;
+        }
+
+        toAdd.setPrev(tail);
+        tail.setNext(toAdd);
+        tail = toAdd;
+    }
+
+    private void remove() {
+        tail = tail.getPrev();
+        tail.setNext(null);
     }
 
     private void beginAnalysis() {
@@ -47,14 +62,13 @@ public class Lexer {
         }
 
         if (singleLexeme.getType() == "ASSIGN") {
-            if (this.lexemes.peekBack() != null) {
-                Lexeme previous = (Lexeme) this.lexemes.peekBack();
-                if (checkRepeats(previous)) return;
+            if (tail != null) {
+                if (checkRepeats(tail)) return;
             }
         }
 
         if (singleLexeme.getType() != "COMMENT") {
-            this.lexemes.append(singleLexeme);
+            add(singleLexeme);
         }
     }
 
@@ -96,16 +110,22 @@ public class Lexer {
                 return new Lexeme("CBRACK", value, line);
             case ".":
                 return new Lexeme("DOT", value, line);
+            case "!":
+                return new Lexeme("EXCL", value, line);
             case "#":
                 while (scanner.hasNext()) {
                     String scanned = scanner.next();
-                    if (scanned.equals("\n")) break;
+                    if (scanned.equals("\n")) {
+                        line++;
+                        break;
+                    }
                 }
                 return new Lexeme("COMMENT", value, line);
             case "\"":
                 value = "";
                 while (scanner.hasNext()) {
                     String scanned = scanner.next();
+                    if (scanned.equals("\n")) line++;
                     if (scanned.equals("\"")) break;
                     value += scanned;
                 }
@@ -120,16 +140,20 @@ public class Lexer {
     private boolean checkRepeats(Lexeme previous) {
         switch (previous.getType()) {
             case "ASSIGN":
-                this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("CEQUAL", "==", line));
+                remove();
+                add(new Lexeme("CEQUAL", "==", line));
                 return true;
             case "GRTT":
-                this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("GRTEQ", ">=", line));
+                remove();
+                add(new Lexeme("GRTEQ", ">=", line));
                 return true;
             case "LESST":
-                this.lexemes.removeBack();
-                this.lexemes.append(new Lexeme("LESSEQ", "<=", line));
+                remove();
+                add(new Lexeme("LESSEQ", "<=", line));
+                return true;
+            case "EXCL":
+                remove();
+                add(new Lexeme("NOTEQ", "!=", line));
                 return true;
         }
 
@@ -147,16 +171,16 @@ public class Lexer {
 
             if (checkSingle(newValue) != null) {
                 Lexeme singleMatched = checkSingle(newValue);
-                this.lexemes.append(checkWord(startingWord));
+                add(checkWord(startingWord));
 
                 if (singleMatched.getType() != "COMMENT") {
-                    this.lexemes.append(checkSingle(newValue));
+                    add(checkSingle(newValue));
                 }
                 break;
             }
 
             if (newValue.compareTo(" ") == 0 || newValue.compareTo("\n") == 0) {
-                this.lexemes.append(checkWord(startingWord));
+                add(checkWord(startingWord));
                 break;
             }
 
@@ -190,6 +214,10 @@ public class Lexer {
                 return new Lexeme("NIL", value, line);
             case "set":
                 return new Lexeme("SET", value, line);
+            case "&&":
+                return new Lexeme("AND", value, line);
+            case "||":
+                return new Lexeme("OR", value, line);
         }
 
         return dynamicValue(value);

@@ -1,11 +1,40 @@
-public class Lexeme extends ListNode {
+import java.util.ArrayList;
+
+public class Lexeme {
     private String type;
     private String value;
     private int line;
+    private ArrayList<Lexeme> array;
+    private Lexeme next = null;
+    private Lexeme prev = null;
 
     public Lexeme(String type) {
         this.type = type;
         this.value = null;
+    }
+
+    public Lexeme getNext() {
+        return this.next;
+    }
+
+    public void setNext(Lexeme next) {
+        this.next = next;
+    }
+
+    public void setPrev(Lexeme prev) {
+        this.prev = prev;
+    }
+
+    public Lexeme getPrev() {
+        return this.prev;
+    }
+
+    public void initArray() {
+        array = new ArrayList<>();
+    }
+
+    public ArrayList<Lexeme> getArray() {
+        return array;
     }
 
     public Lexeme(String type, String value, int line) {
