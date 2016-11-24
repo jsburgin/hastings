@@ -212,8 +212,6 @@ public class Lexer {
                 return new Lexeme("BOOLF", value, line);
             case "nil":
                 return new Lexeme("NIL", value, line);
-            case "set":
-                return new Lexeme("SET", value, line);
             case "&&":
                 return new Lexeme("AND", value, line);
             case "||":

@@ -1,0 +1,266 @@
+func max(a, b) {
+    if (a > b) { return a; }
+    return b;
+}
+
+func Dict() {
+    var head = nil;
+    func Node(value, parent, left, right) { return this; }
+    func Item(key, value) { return this; }
+
+    # ---------------------------------------------
+    # set
+    # sets or updates a new value in the dictionary
+    # ---------------------------------------------
+    func set(key, value) {
+        var item = Item(key, value);
+        var node = Node(item, nil, nil, nil);
+        func help(cur) {
+            if (node.value.key == cur.value.key) {
+                cur.value.value = value;
+            } else if (node.value.key < cur.value.key && cur.left == nil) {
+                node.parent = cur;
+                cur.left = node;
+                fixup(node);
+            } else if (node.value.key < cur.value.key) {
+                help(cur.left);
+            } else if (cur.right == nil) {
+                node.parent = cur;
+                cur.right = node;
+                fixup(node);
+            } else {
+                help(cur.right);
+            }
+        }
+
+        if (head == nil) {
+            head = node;
+        } else {
+            help(head);
+        }
+    }
+
+    func fixup(value) {
+        var x = value;
+        var parent = value.parent;
+        func run() {
+            if (favorsSibling(parent, x)) {
+                return 0;
+            } else if (balanced(parent)) {
+                fixup(parent);
+            } else {
+                var y = favorite(x);
+                var p = x.parent;
+
+                if (y != nil && notLinear(x, y)) {
+                    if (isLeft(y)) {
+                        rotate(y, x, "L");
+                    } else {
+                        rotate(y, x, "R");
+                    }
+
+                    if (isLeft(y)) {
+                        rotate(y, p, "L");
+                    } else {
+                        rotate(y, p, "R");
+                    }
+                } else {
+                    if (isLeft(x)) {
+                        rotate(x, p, "L");
+                    } else {
+                        rotate(x, p, "R");
+                    }
+                }
+            }
+        }
+
+        if (x.value.key != head.value.key) {
+            run();
+        }
+    }
+
+    # ---------------------------------------------
+    # treeHeight
+    # gets the height of an individual tree node
+    # ---------------------------------------------
+    func treeHeight(x) {
+        func help(h, cur) {
+            var l = cur.left;
+            var r = cur.right;
+
+            if (l == nil && r == nil) {
+                return h;
+            } else if (l == nil) {
+                return help(h + 1, r);
+            } else if (r == nil) {
+                return help(h + 1, l);
+            } else {
+                return max(help(h + 1, l), help(h + 1, r));
+            }
+        }
+
+        if (x != nil) {
+            return help(1, x);
+        }
+
+        return 0;
+    }
+
+    func isLeft(x) {
+        var parent = x.parent;
+        if (parent.left != nil) {
+            if (parent.left.value.key == x.value.key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    func isRight(x) {
+        var parent = x.parent;
+        if (parent.right != nil) {
+            if (parent.right.value.key == x.value.key) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    func balanced(x) {
+        var balFactor = treeHeight(x.left) - treeHeight(x.right);
+        if (balFactor == 0 || balFactor == 1 || balFactor == int("-1")) {
+
+            return true;
+        }
+
+        return false;
+    }
+
+    func favorsSibling(parent, x) {
+        var leftHeight = treeHeight(parent.left);
+        var rightHeight = treeHeight(parent.right);
+
+        if (isLeft(x)) {
+            if (rightHeight > leftHeight) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (leftHeight > rightHeight) {
+            return true;
+        }
+
+        return false;
+    }
+
+    # ---------------------------------------------
+    # favorite
+    # returns the favorite child of node or nil
+    # ---------------------------------------------
+    func favorite(x) {
+        var leftHeight = treeHeight(x.left);
+        var rightHeight = treeHeight(x.right);
+
+        if (leftHeight == 0 && rightHeight == 0) {
+            return nil;
+        } else if (leftHeight > rightHeight) {
+            return x.left;
+        } else {
+            return x.right;
+        }
+    }
+
+    func notLinear(x y) {
+        if (isLeft(x) && isLeft(y)) {
+            return false;
+        }
+
+        if (isRight(x) && isRight(y)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    # ---------------------------------------------
+    # rotate
+    # dispatches out to rotateLeft or rotateRight
+    # ---------------------------------------------
+    func rotate(from to side) {
+        if (side == "L") {
+            rotateToRight(from, to);
+        } else {
+            rotateToLeft(from, to);
+        }
+    }
+
+    func rotateToRight(from, to) {
+        var right = from.right;
+        var gp = to.parent;
+        if (head.value.key == to.value.key) {
+            head = from;
+        }
+
+        if (gp != nil) {
+            if (isLeft(to)) { gp.left = from; }
+            else { gp.right = from; }
+        }
+
+        from.right = to;
+        to.left = right;
+        to.parent = from;
+        from.parent = gp;
+    }
+
+    func rotateToLeft(from, to) {
+        var left = from.left;
+        var gp = to.parent;
+
+        if (head.value.key == to.value.key) {
+            head = from;
+        }
+
+        if (gp != nil) {
+            if (isLeft(to)) { gp.left = from; }
+            else { gp.right = from; }
+        }
+
+        from.left = to;
+        to.right = left;
+        to.parent = from;
+        from.parent = gp;
+    }
+
+    # ---------------------------------------------
+    # get
+    # returns the value for a specific key
+    # ---------------------------------------------
+    func get(key) {
+        var cur = head;
+        func run() {
+            if (cur == nil) {
+                return nil;
+            } else if (cur.value.key == key) {
+                return cur.value.value;
+            } else if (key < cur.value.key) {
+                cur = cur.left;
+                return run();
+            } else {
+                cur = cur.right;
+                return run();
+            }
+        }
+
+        return run();
+    }
+
+    return this;
+}
+
+var myDict = Dict();
+myDict.set("name", "joshua");
+print(myDict.get("name"));

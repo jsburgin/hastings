@@ -31,12 +31,6 @@ public class Env {
     }
 
     public static void insert(Lexeme ident, Lexeme value, Lexeme env) {
-        while (ident.getNext() != null) {
-            ident = (Lexeme) ident.getNext();
-        }
-
-        ident = (Lexeme) ident.getPrev();
-
         Lexeme table = Env.car(env);
         Env.setCar(table ,cons("JOIN", ident, car(table)));
         Env.setCdr(table, cons("JOIN", value, cdr(table)));
@@ -57,21 +51,9 @@ public class Env {
             Lexeme vals = cdr(table);
 
             while (variables != null) {
-                if (sameVariable(variable, car(variables))) {
-                    if ((Lexeme) variable.getNext() == null) {
-                        setCar(vals, value);
-                        return null;
-                    }
-
-                    Lexeme next = (Lexeme) variable.getNext();
-                    if (next.getType().equals("INDEX")) {
-                        Lexeme index = (Lexeme) next.getPrev();
-                        ArrayList<Lexeme> array = car(vals).getArray();
-                        array.set(Integer.valueOf(index.getValue()), value);
-                        return null;
-                    }
-
-                    return updateValue(car(vals), (Lexeme) variable.getNext(), value);
+                if (sameVariable(car(variables),variable)) {
+                    setCar(vals, value);
+                    return null;
                 }
 
                 variables = cdr(variables);
@@ -91,26 +73,8 @@ public class Env {
             Lexeme vals = cdr(table);
 
             while (variables != null) {
-                if (sameVariable(variable, car(variables))) {
-
-                    if ((Lexeme) variable.getNext() == null) {
-                        return  car(vals);
-                    }
-
-                    try {
-                        Lexeme next = (Lexeme) variable.getNext();
-                        if (next.getType().equals("INDEX")) {
-                            Lexeme index = (Lexeme) next.getPrev();
-                            ArrayList<Lexeme> array = car(vals).getArray();
-                            return array.get(Integer.valueOf(index.getValue()));
-                        }
-                    } catch (IndexOutOfBoundsException e) {
-                        System.out.println("ARRAY OUT OF BOUNDS ERROR.");
-                        System.exit(1);
-                    }
-
-                    return lookupEnv(car(vals), (Lexeme) variable.getNext());
-
+                if (sameVariable(car(variables), variable)) {
+                    return  car(vals);
                 }
 
                 variables = cdr(variables);
@@ -120,7 +84,6 @@ public class Env {
             env = Env.cdr(env);
         }
 
-        variable = (Lexeme) variable.getPrev();
         System.out.print("UNDEFINED ERROR. ");
         System.out.println("Line " + variable.getLine() + ": " + variable.getValue() + " is not defined.");
         System.exit(1);
@@ -128,7 +91,6 @@ public class Env {
     }
 
     public static boolean sameVariable(Lexeme a, Lexeme b) {
-        a = (Lexeme) a.getPrev();
         return a.getValue().equals(b.getValue());
     }
 }

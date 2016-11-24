@@ -1,0 +1,41 @@
+include("./stack.has");
+
+func rpn(items) {
+    var opdSt = Stack(nil, 0);
+
+    func getOperands() {
+        var operands = [opdSt.pop(), opdSt.pop()];
+        return operands;
+    }
+
+    func run(i) {
+        if (i < size(items)) {
+            if (items[i] == "+") {
+                var opds = getOperands();
+                opdSt.push(opds[1] + opds[0]);
+            } else if (items[i] == "-") {
+                var opds = getOperands();
+                opdSt.push(opds[1] - opds[0]);
+            } else if (items[i] == "*") {
+                var opds = getOperands();
+                opdSt.push(opds[1] * opds[0]);
+            } else if (items[i] == "/") {
+                var opds = getOperands();
+                opdSt.push(opds[1] / opds[0]);
+            } else if (items[i] == "^") {
+                var opds = getOperands();
+                opdSt.push(opds[1] ^ opds[0]);
+            } else {
+                opdSt.push(int(items[i]));
+            }
+            run(i + 1);
+        }
+    }
+
+    run(0);
+    return opdSt.pop();
+}
+
+print(rpn(read("./rpnExamples/one.txt")));
+print(rpn(read("./rpnExamples/two.txt")));
+print(rpn(read("./rpnExamples/three.txt")));

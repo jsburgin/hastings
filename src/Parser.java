@@ -132,11 +132,14 @@ public class Parser {
      */
     private Lexeme ifState() {
         Lexeme tree = new Lexeme("IFSTATE");
+        Lexeme body = new Lexeme("BODY");
         match("OPAREN");
-        tree.setPrev(condBody());
+        body.setPrev(condBody());
         match("CPAREN");
         match("OBRACE");
-        tree.setNext(statements("CBRACE"));
+        body.setNext(statements("CBRACE"));
+        tree.setPrev(body);
+        tree.setNext(elseChain());
 
         return tree;
     }
@@ -162,8 +165,12 @@ public class Parser {
     private Lexeme elseState() {
         Lexeme tree = new Lexeme("ELSESTATE");
         match("ELSE");
-        match("ICOND");
-        tree.setPrev(conditional());
+        if (check("ICOND")) {
+            match("ICOND");
+            match("OPAREN");
+            tree.setPrev(condBody());
+            match("CPAREN");
+        }
         match("OBRACE");
         tree.setNext(statements("CBRACE"));
 
@@ -421,7 +428,7 @@ public class Parser {
     }
 
     private boolean opPending() {
-        return check("PLUS") || check("MINUS") || check("MULT") || check("DIV");
+        return check("PLUS") || check("MINUS") || check("MULT") || check("DIV") || check("EXP");
     }
 
     private boolean condPending() {

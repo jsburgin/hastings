@@ -1,16 +1,26 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Scanner;
+
+
 /**
  * Created by josh on 11/13/16.
  */
 public class Evaluator {
-    Lexeme globalEnv;
+    private Lexeme globalEnv;
     private Lexeme returnValue = null;
+    private String runDir;
 
-    public Evaluator(Lexeme tree, Lexeme env) {
+    public Evaluator() {}
+
+    public Evaluator(Lexeme tree, Lexeme env, String runDir) {
         globalEnv = env;
+        this.runDir = new File(runDir).getParent();
         eval(tree, globalEnv);
     }
 
-    private Lexeme eval(Lexeme tree, Lexeme env) {
+    public Lexeme eval(Lexeme tree, Lexeme env) {
         switch (tree.getType()) {
             case "STATEMENTS":
                 return evalStatements(tree, env);
@@ -28,9 +38,11 @@ public class Evaluator {
                 return tree;
             case "FUNCCALL":
                 Lexeme call = evalFuncCall(tree, env);
-                    returnValue = null;
+                returnValue = null;
                 return call;
             case "IDENTH":
+                return evalIdent(tree, env);
+            case "IDENT":
                 return Env.lookupEnv(env, tree);
             case "PLUS":
                 return evalOp("+", tree, env);
@@ -40,6 +52,8 @@ public class Evaluator {
                 return evalOp("*", tree, env);
             case "DIV":
                 return evalOp("/", tree, env);
+            case "EXP":
+                return evalOp("^", tree, env);
             case "FUNCDEF":
                 return evalFuncDef(tree, env);
             case "RETURNST":
@@ -67,9 +81,47 @@ public class Evaluator {
                 return evalOr(tree, env);
             case "ARRAYDEF":
                 return arrayDef(tree, env);
+            case "ELSECHAIN":
+                return evalElse(tree, env);
         }
 
         return null;
+    }
+
+    private Lexeme evalElse(Lexeme tree, Lexeme env) {
+        if (tree.getPrev().getPrev() == null) {
+            return eval(tree.getPrev().getNext(), env);
+        } else {
+            Lexeme status = eval(tree.getPrev().getPrev(), env);
+            if (status.getType().equals("BOOLT")) {
+                return eval(tree.getPrev().getNext(), env);
+            }
+        }
+
+        if (tree.getNext() != null) {
+            return eval(tree.getNext(), env);
+        }
+
+        return new Lexeme("DONE");
+    }
+
+    private Lexeme evalIdent(Lexeme tree, Lexeme env) {
+        Lexeme value = eval(tree.getPrev(), env);
+
+        if (tree.getNext() != null) {
+            if (tree.getNext().getType().equals("INDEX")) {
+                Lexeme index = eval(tree.getNext().getPrev(), env);
+                if (!index.getType().equals("INT")) {
+                    System.out.println("ACCESS ERROR.");
+                    System.exit(1);
+                }
+                return value.getArray().get(Integer.valueOf(index.getValue()));
+            }
+
+            return evalIdent(tree.getNext(), value);
+        }
+
+        return value;
     }
 
     private Lexeme arrayDef(Lexeme tree, Lexeme env) {
@@ -106,18 +158,38 @@ public class Evaluator {
     }
 
     private Lexeme evalSetVar(Lexeme tree, Lexeme env) {
-        Env.updateValue(env, tree.getPrev(), eval(tree.getNext(), env));
+        Lexeme ident = tree.getPrev();
+        Lexeme nenv = env;
+        while (ident.getNext() != null) {
+            if (ident.getNext().getType().equals("INDEX")) {
+                Lexeme array = eval(ident.getPrev(), env);
+                Lexeme index = eval(ident.getNext().getPrev(), env);
+                array.getArray().set(Integer.valueOf(index.getValue()), eval(tree.getNext(), nenv));
+                return new Lexeme("NONE");
+            }
+
+            nenv = eval(ident.getPrev(), nenv);
+            ident = ident.getNext();
+        }
+
+        Env.updateValue(nenv, ident.getPrev(), eval(tree.getNext(), env));
+
         return new Lexeme("NONE");
+
     }
 
     private Lexeme evalIf(Lexeme tree, Lexeme env) {
-        Lexeme status = eval(tree.getPrev(), env);
+        Lexeme status = eval(tree.getPrev().getPrev(), env);
 
         if (status.getType().equals("BOOLT")) {
-            return eval(tree.getNext(), env);
+            return eval(tree.getPrev().getNext(), env);
+        } else {
+            if (tree.getNext() != null) {
+                return eval(tree.getNext(), env);
+            }
         }
 
-        return null;
+        return new Lexeme("NONE");
     }
 
     private Lexeme evalEq(Lexeme tree, Lexeme env) {
@@ -158,10 +230,28 @@ public class Evaluator {
         return new Lexeme("BOOLT");
     }
 
+    private Lexeme evalStringCond(Lexeme tree, String left, String right) {
+        int result = left.compareTo(right);
+        switch (tree.getType()) {
+            case "LESST":
+                if (result < 0) return new Lexeme("BOOLT");
+                return new Lexeme("BOOLF");
+            case "GRTT":
+                if (result > 0) return new Lexeme("BOOLT");
+                return new Lexeme("BOOLF");
+        }
+
+        return new Lexeme("BOOLF");
+    }
+
     private Lexeme evalCond(Lexeme tree, Lexeme env) {
 
         Lexeme left = eval(tree.getPrev(), env);
         Lexeme right = eval(tree.getNext(), env);
+
+        if (left.getType().equals("STRING") && left.getType().equals("STRING")) {
+            return evalStringCond(tree, left.getValue(), right.getValue());
+        }
 
         if (!left.getType().equals("INT") || !right.getType().equals("INT")) {
             System.out.println("Cannot compare strings with conditionals other than: ==.");
@@ -225,13 +315,22 @@ public class Evaluator {
             case "/":
                 done.setValue(String.valueOf(first / second));
                 return done;
+            case "^":
+                int result = (int) Math.pow(first, second);
+                done.setValue(String.valueOf(result));
+                return done;
         }
 
         return null;
     }
 
     private Lexeme evalVarDef(Lexeme tree, Lexeme env) {
-        Env.insert(tree.getPrev(), eval(tree.getNext(), env), env);
+        Lexeme ident = tree.getPrev();
+        while (ident.getNext() != null) {
+            env = eval(tree.getPrev(), env);
+            ident = ident.getNext();
+        }
+        Env.insert(ident.getPrev(), eval(tree.getNext(), env), env);
 
         return new Lexeme("NONE");
     }
@@ -272,12 +371,63 @@ public class Evaluator {
         }
 
         if (funcName.getValue().equals("include")) {
-            String filename = Env.car(eargs).getValue();
-            Include.execute(filename, globalEnv);
+            Lexeme value = Env.car(eargs);
+            String fileName = value.getValue();
+            File readFile = new File(fileName);
+
+            if (!readFile.isAbsolute()) {
+                try {
+                    fileName = new File(runDir, fileName).getCanonicalPath();
+                } catch (IOException e) {
+                    System.out.println("IOException");
+                    System.exit(1);
+                }
+            }
+
+            Include.execute(fileName, globalEnv);
             return null;
         }
 
-        Lexeme closure = Env.lookupEnv(env, tree.getNext());
+        if (funcName.getValue().equals("size")) {
+            return getSize(eargs);
+        }
+
+        if (funcName.getValue().equals("isInt")) {
+            Lexeme value = Env.car(eargs);
+            if (value.getType().equals("INT")) {
+                return new Lexeme("BOOLT");
+            }
+
+            return new Lexeme("BOOLF");
+        }
+
+        if (funcName.getValue().equals("read")) {
+            return read(eargs);
+        }
+
+        if (funcName.getValue().equals("int")) {
+            Lexeme value = Env.car(eargs);
+
+            if (isNumeric(value.getValue())) {
+                value.setType("INT");
+                return value;
+            }
+
+            System.out.println("Invalid value for call to int: " + value.getValue());
+            System.out.println("Value must be a valid integer.");
+            System.exit(1);
+        }
+
+        if (funcName.getValue().equals("isNumeric")) {
+            Lexeme value = Env.car(eargs);
+            if (isNumeric(value.getValue())) {
+                return new Lexeme("BOOLT");
+            }
+
+            return new Lexeme("BOOLF");
+        }
+
+        Lexeme closure = eval(tree.getNext(), env);
         Lexeme params = getClosureParams(closure);
         Lexeme body = getClosureBody(closure);
         Lexeme senv = getClosureEnv(closure);
@@ -286,8 +436,52 @@ public class Evaluator {
         return eval(body, xenv);
     }
 
+    private Lexeme read(Lexeme eargs) {
+        Lexeme value = Env.car(eargs);
+        if (!value.getType().equals("STRING")) {
+            System.out.println("Argument to read must be a string.");
+        }
+
+        Lexeme tree = new Lexeme("ARRAY");
+        tree.initArray();
+
+        String fileName = value.getValue();
+        File readFile = new File(fileName);
+
+        if (!readFile.isAbsolute()) {
+            readFile = new File(runDir, fileName);
+        }
+
+        try {
+            Scanner scanner = new Scanner(readFile);
+
+            while(scanner.hasNext()) {
+                String read = scanner.next();
+                Lexeme newValue = new Lexeme("STRING");
+                newValue.setValue(read);
+                tree.getArray().add(newValue);
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("File " + fileName + " not found.");
+            System.out.println("Exiting.");
+            System.exit(1);
+        }
+
+
+        return tree;
+    }
+
+    private Lexeme getSize(Lexeme eargs) {
+        Lexeme array = Env.car(eargs);
+        Lexeme size = new Lexeme("INT");
+        size.setValue(String.valueOf(array.getArray().size()));
+
+        return size;
+    }
+
     private void print(Lexeme eargs) {
         while (eargs != null) {
+            Lexeme value = Env.car(eargs);
             System.out.print(Env.car(eargs).getValue() + " ");
             eargs = Env.cdr(eargs);
         }
@@ -325,5 +519,14 @@ public class Evaluator {
 
     private Lexeme getFuncDefBody(Lexeme tree) {
         return  tree.getNext();
+    }
+
+    private boolean isNumeric(String value) {
+        try {
+            int a = Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 }

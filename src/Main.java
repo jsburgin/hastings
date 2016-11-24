@@ -8,7 +8,7 @@ public class Main {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.out.println("Please provide .has source file.");
+            System.out.println("Please provide source file.");
             System.exit(1);
         }
 

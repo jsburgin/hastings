@@ -1,0 +1,28 @@
+func Node(value, next) {
+    return this;
+}
+
+func Stack(head, size) {
+    func push(value) {
+        head = Node(value, head);
+        size = size + 1;
+    }
+
+    func pop() {
+        var returnValue = head;
+        if (head != nil) {
+            returnValue = head.value;
+            head = head.next;
+            size = size - 1;
+        }
+        return returnValue;
+    }
+
+    func peek() {
+        if (head != nil) {
+            print(head.value);
+        }
+    }
+
+    return this;
+}

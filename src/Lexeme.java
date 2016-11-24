@@ -10,7 +10,13 @@ public class Lexeme {
 
     public Lexeme(String type) {
         this.type = type;
-        this.value = null;
+        this.value = "_";
+
+        if (this.getType().equals("BOOLF")) {
+            this.value = "false";
+        } else if (this.getType().equals("BOOLT")) {
+            this.value = "true";
+        }
     }
 
     public Lexeme getNext() {
