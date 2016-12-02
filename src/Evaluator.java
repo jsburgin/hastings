@@ -3,7 +3,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
 
-
 /**
  * Created by josh on 11/13/16.
  */
@@ -85,7 +84,7 @@ public class Evaluator {
                 return evalElse(tree, env);
         }
 
-        return null;
+        return env;
     }
 
     private Lexeme evalElse(Lexeme tree, Lexeme env) {
@@ -340,6 +339,7 @@ public class Evaluator {
 
         if (returnValue == null) {
             eval(tree.getNext(), env);
+            return env;
         }
 
         return returnValue;
